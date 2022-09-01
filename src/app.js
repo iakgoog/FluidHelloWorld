@@ -5,14 +5,44 @@
 
 import { SharedMap } from "fluid-framework";
 import { TinyliciousClient } from "@fluidframework/tinylicious-client";
+// import { AzureClient, LOCAL_MODE_TENANT_ID } from "@fluidframework/azure-client";
+// import { getRandomName } from "@fluidframework/server-services-client";
+// import { v4 as uuid } from "uuid";
+// import { InsecureTokenProvider } from "@fluidframework/test-client-utils";
 
 export const diceValueKey = "dice-value-key";
 
+const dichHash = "dice-hash";
+
 // Load container and render the app
 
-const client = new TinyliciousClient();
+const params = new URLSearchParams(document.location.search);
+// const domain = params.get("domain") || "http://192.168.1.49";
+const domain = params.get("domain") || "http://159.89.193.225";
+const port = params.get("port") || "7070";
+
+const connectionConfig = { connection: { domain, port } };
+
+// const userConfig = {
+//     id: uuid(),
+//     name: getRandomName(),
+// };
+
+// const localConnectionConfig = {
+//     tenantId: LOCAL_MODE_TENANT_ID,
+//     type: "remote",
+//     tokenProvider: new InsecureTokenProvider("", userConfig),
+//     endpoint: "http://localhost:7070",
+// };
+
+// const connectionConfig = {
+//     connection: localConnectionConfig,
+// };
+
+const client = new TinyliciousClient(connectionConfig);
+// const client = new AzureClient(connectionConfig);
 const containerSchema = {
-    initialObjects: { diceMap: SharedMap }
+    initialObjects: { diceMap: SharedMap },
 };
 const root = document.getElementById("content");
 
@@ -22,24 +52,46 @@ const createNewDice = async () => {
     const id = await container.attach();
     renderDiceRoller(container.initialObjects.diceMap, root);
     return id;
-}
+};
 
 const loadExistingDice = async (id) => {
     const { container } = await client.getContainer(id, containerSchema);
     renderDiceRoller(container.initialObjects.diceMap, root);
-}
+};
 
 async function start() {
+    // subscribeHashChange();
     if (location.hash) {
-        await loadExistingDice(location.hash.substring(1))
+        await loadExistingDice(location.hash.substring(1));
     } else {
         const id = await createNewDice();
         location.hash = id;
     }
 }
 
-start().catch((error) => console.error(error));
+const subscribeHashChange = () => {
+    window.addEventListener(
+        "hashchange",
+        (win, ev) => {
+            console.log(win);
+            console.log(window.location.hash.substring(1));
+            if (window.location.hash.length > 0) {
+                fetch("http://localhost:3031/", {
+                    mode: "cors",
+                    method: "POST",
+                    headers: {
+                        Accept: "application/json",
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({ hash: window.location.hash }),
+                });
+            }
+        },
+        false
+    );
+};
 
+start().catch((error) => console.error(error));
 
 // Define the view
 
@@ -55,7 +107,7 @@ template.innerHTML = `
     <div class="dice"></div>
     <button class="roll"> Roll </button>
   </div>
-`
+`;
 
 const renderDiceRoller = (diceMap, elem) => {
     elem.appendChild(template.content.cloneNode(true));
@@ -77,4 +129,4 @@ const renderDiceRoller = (diceMap, elem) => {
 
     // Use the changed event to trigger the rerender whenever the value changes.
     diceMap.on("valueChanged", updateDice);
-}
+};
