@@ -18,8 +18,8 @@ const dichHash = "dice-hash";
 
 const params = new URLSearchParams(document.location.search);
 // const domain = params.get("domain") || "http://192.168.1.49";
-const domain = params.get("domain") || "http://159.89.193.225";
-const port = params.get("port") || "7070";
+const domain = params.get("domain") || "https://iakgoog.link";
+const port = params.get("port") || "443";
 
 const connectionConfig = { connection: { domain, port } };
 
